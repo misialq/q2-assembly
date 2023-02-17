@@ -23,6 +23,7 @@ requirements:
     - samtools
     - insilicoseq
     - megahit ==1.2.9
+    - minimap2 ==2.24
     - qiime2 {{ qiime2_epoch }}.*
     - q2-types-genomics {{ qiime2_epoch }}.*
     - q2templates {{ qiime2_epoch }}.*

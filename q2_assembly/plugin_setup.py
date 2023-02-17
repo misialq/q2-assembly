@@ -13,6 +13,8 @@ from q2_types.per_sample_sequences import (
     SequencesWithQuality,
 )
 from q2_types.sample_data import SampleData
+from qiime2.core.type import Int, Range, Str, Choices, Bool
+
 from q2_types_genomics.per_sample_data import (
     Contigs,
     MAGs,
@@ -172,4 +174,33 @@ plugin.methods.register_function(
     description="This method uses Bowtie2 to map provided reads to "
     "respective contigs.",
     citations=[citations["Langmead2012"]],
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.minimap2.align_minimap2,
+    inputs={
+        "seqs": SampleData[PairedEndSequencesWithQuality | SequencesWithQuality],
+        "reference": FeatureData[Sequence]
+    },
+    parameters={
+        "preset": Str % Choices(["sr"]),
+        "t": Int % Range(1, None),
+        "coalign": Bool
+    },
+    outputs=[("alignment_map", SampleData[AlignmentMap])],
+    input_descriptions={
+        "seqs": "The paired- or single-end reads which should be mapped "
+                "to the reference.",
+        "reference": "Reference genome to align sequences to."
+    },
+    parameter_descriptions={
+        "preset": "Pre-defined set of parameters based on application.",
+        "t": "Number of threads.",
+        "coalign": ""
+    },
+    output_descriptions={"alignment_map": "Reads-to-reference mapping."},
+    name="Map reads to reference using Minimap2.",
+    description="This method uses Minimap2 to map provided reads to "
+                "the reference genome.",
+    citations=[],
 )
