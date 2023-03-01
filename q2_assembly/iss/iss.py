@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# Copyright (c) 2022, QIIME 2 development team.
+# Copyright (c) 2023, QIIME 2 development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -107,7 +107,7 @@ def generate_reads(
     mode: str = None,
     model: str = "HiSeq",
     gc_bias: bool = False,
-    cpus: int = None,
+    cpus: int = 1,
     debug: bool = False,
     seed: int = None,
 ) -> (CasavaOneEightSingleLanePerSampleDirFmt, DNAFASTAFormat, biom.Table):

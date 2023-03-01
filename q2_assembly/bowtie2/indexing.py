@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# Copyright (c) 2022, QIIME 2 development team.
+# Copyright (c) 2023, QIIME 2 development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -70,7 +70,7 @@ def index_contigs(
     nodc: bool = False,
     offrate: int = None,
     ftabchars: int = None,
-    threads: int = None,
+    threads: int = 1,
     seed: int = None,
 ) -> Bowtie2IndexDirFmt:
     kwargs = {k: v for k, v in locals().items() if k not in ["contigs"]}
@@ -99,7 +99,7 @@ def index_mags(
     nodc: bool = False,
     offrate: int = None,
     ftabchars: int = None,
-    threads: int = None,
+    threads: int = 1,
     seed: int = None,
 ) -> MultiBowtie2IndexDirFmt:
     kwargs = {k: v for k, v in locals().items() if k not in ["mags"]}

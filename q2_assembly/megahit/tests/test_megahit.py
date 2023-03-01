@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# Copyright (c) 2022, QIIME 2 development team.
+# Copyright (c) 2023, QIIME 2 development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -254,6 +254,8 @@ class TestMegahit(TestPluginBase):
             "1,2",
             "--no-mercy",
             "--bubble-level",
+            "1",
+            "--num-cpu-threads",
             "1",
         ]
         p.assert_called_with(seqs=input, common_args=exp_args)

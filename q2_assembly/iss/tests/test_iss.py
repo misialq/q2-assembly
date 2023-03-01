@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# Copyright (c) 2022, QIIME 2 development team.
+# Copyright (c) 2023, QIIME 2 development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -60,6 +60,8 @@ class TestISS(TestPluginBase):
             "halfnormal",
             "--model",
             "HiSeq",
+            "--cpus",
+            "1",
             "--debug",
         ]
 

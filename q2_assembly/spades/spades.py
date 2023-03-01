@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# Copyright (c) 2022, QIIME 2 development team.
+# Copyright (c) 2023, QIIME 2 development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -135,7 +135,7 @@ def assemble_spades(
     only_assembler: bool = False,
     careful: bool = False,
     disable_rr: bool = False,
-    threads: int = None,
+    threads: int = 1,
     memory: int = None,
     k: List[int] = None,
     cov_cutoff: Union[float, str] = "off",

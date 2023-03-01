@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# Copyright (c) 2022, QIIME 2 development team.
+# Copyright (c) 2023, QIIME 2 development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -45,6 +45,8 @@ class TestBowtie2Mapping(TestPluginBase):
             "-i",
             "L,1,0.5",
             "--ff",
+            "--threads",
+            "1",
             "--very-fast",
         ]
         self.test_index = Bowtie2IndexDirFmt()

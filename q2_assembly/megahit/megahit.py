@@ -1,5 +1,5 @@
 # ----------------------------------------------------------------------------
-# Copyright (c) 2022, QIIME 2 development team.
+# Copyright (c) 2023, QIIME 2 development team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -135,7 +135,7 @@ def assemble_megahit(
     kmin_1pass: bool = False,
     memory: float = None,
     mem_flag: int = None,
-    num_cpu_threads: int = None,
+    num_cpu_threads: int = 1,
     no_hw_accel: bool = False,
     min_contig_len: int = None,
 ) -> ContigSequencesDirFmt:
