@@ -17,20 +17,16 @@ from q2_types.per_sample_sequences import (
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
+from q2_types_genomics.per_sample_data._format import BAMDirFmt
 
 from q2_assembly._utils import run_command, run_commands_with_pipe
-from q2_types_genomics.per_sample_data._format import BAMDirFmt
 
 
 def _process_sample(sample, fwd, rev, reference, common_args, out):
-    """
-    """
+    """ """
     with tempfile.TemporaryDirectory() as tmp:
         results_fp = os.path.join(tmp, f"{sample}.bam")
-        cmd1 = [
-            "minimap2", *common_args, "-a",
-            str(reference.path), fwd
-        ]
+        cmd1 = ["minimap2", *common_args, "-a", str(reference.path), fwd]
         if rev:
             cmd1.append(rev)
 
@@ -71,9 +67,7 @@ def align_minimap2(
     reference: DNAFASTAFormat,
     coalign: bool = False,
     preset: str = "sr",
-    t: int = 3
+    t: int = 3,
 ) -> BAMDirFmt:
     common_args = ["-t", str(t), "-x", preset]
-    return _align_minimap2(
-        seqs=seqs, reference=reference, common_args=common_args
-    )
+    return _align_minimap2(seqs=seqs, reference=reference, common_args=common_args)

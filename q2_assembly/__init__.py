@@ -17,6 +17,4 @@ from .spades import spades
 __version__ = get_versions()["version"]
 del get_versions
 
-__all__ = [
-    "indexing", "mapping", "iss", "megahit", "minimap2", "quast", "spades"
-]
+__all__ = ["indexing", "mapping", "iss", "megahit", "minimap2", "quast", "spades"]
