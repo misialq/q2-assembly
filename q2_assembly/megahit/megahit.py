@@ -10,8 +10,8 @@ import os
 import shutil
 import subprocess
 import tempfile
-from typing import List, Union
 import warnings
+from typing import List, Union
 
 import pandas as pd
 from q2_types.per_sample_sequences import (
@@ -20,7 +20,12 @@ from q2_types.per_sample_sequences import (
 )
 from q2_types_genomics.per_sample_data import ContigSequencesDirFmt
 
-from .._utils import _construct_param, _process_common_input_params, run_command
+from .._utils import (
+    _construct_param,
+    _process_common_input_params,
+    _rename_contigs,
+    run_command,
+)
 
 
 def _process_megahit_arg(arg_key, arg_val):
@@ -80,8 +85,12 @@ def _process_sample(sample, fwd, rev, common_args, out):
                 "stdout and stderr to learn more."
             )
 
+        contigs_in = os.path.join(results_dir, "final.contigs.fa")
+        contigs_out = os.path.join(results_dir, "final.contigs.renamed.fa")
+        _rename_contigs(contigs_in, contigs_out, sample)
+
         shutil.move(
-            os.path.join(results_dir, "final.contigs.fa"),
+            os.path.join(results_dir, "final.contigs.renamed.fa"),
             os.path.join(str(out), f"{sample}_contigs.fa"),
         )
 

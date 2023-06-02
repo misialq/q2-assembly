@@ -121,3 +121,18 @@ def _modify_links(fp: str):
 def _get_sample_from_path(fp):
     """Extracts sample name from a contig's file path."""
     return os.path.basename(fp).rsplit("_contigs.fa", maxsplit=1)[0]
+
+
+def _rename_contigs(contigs_in: str, contigs_out: str, sample_name: str):
+    """Renames contigs to include sample name and contig number.
+
+    Args:
+        contigs_in: Input contigs file.
+        contigs_out: Output contigs file.
+        sample_name: Sample name.
+    """
+    with open(contigs_in, "r") as fin, open(contigs_out, "w") as fout:
+        for line in fin:
+            if line.startswith(">"):
+                line = f">{sample_name}_{line[1:]}"
+            fout.write(line)
