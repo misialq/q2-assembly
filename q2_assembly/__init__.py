@@ -13,8 +13,12 @@ from .iss import iss
 from .megahit import megahit
 from .quast import quast
 from .spades import spades
+from .filter import filter
 
 __version__ = get_versions()["version"]
 del get_versions
 
-__all__ = ["indexing", "mapping", "iss", "megahit", "quast", "spades", "helpers"]
+__all__ = [
+    "indexing", "mapping", "iss", "megahit",
+    "quast", "spades", "helpers", "filter"
+]
