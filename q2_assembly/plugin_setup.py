@@ -10,6 +10,7 @@ import importlib
 
 from q2_types.feature_data import FeatureData, Sequence
 from q2_types.feature_data_mag import MAG, Contig
+from q2_types.feature_map import FeatureMap
 from q2_types.feature_table import FeatureTable, Frequency
 from q2_types.genome_data import DNASequence, GenomeData
 from q2_types.per_sample_sequences import (
@@ -485,6 +486,39 @@ plugin.methods.register_function(
     name="Map reads to MAGs using Bowtie2.",
     description="This method uses Bowtie2 to map provided reads to "
     "the respective MAGs.",
+    citations=[citations["Langmead2012"]],
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.mapping.map_seqs_to_genomes,
+    inputs={
+        "index": FeatureData[SingleBowtie2Index],
+        "seqs": FeatureData[Sequence],
+    },
+    parameters={"exclude_seqs": Bool, **bowtie2_mapping_params},
+    outputs=[
+        ("mapped_seqs", FeatureData[Sequence]),
+        ("id_map", FeatureMap[SequenceToGenome]),
+    ],
+    input_descriptions={
+        "index": "Bowtie 2 indices generated for dereplicated MAGs of interest.",
+        "sequences": "The FASTA sequences which should be mapped to the MAGs.",
+    },
+    parameter_descriptions={
+        "exclude_seqs": (
+            "Exclude sequences that align to reference. Set this "
+            "option to False to exclude sequences that do not "
+            "align to the reference database."
+        ),
+        **bowtie2_mapping_param_descriptions,
+    },
+    output_descriptions={
+        "mapped_seqs": "FASTA sequences which mapped to the provided genomes.",
+        "id_map": "Mapping between sequence IDs and genome IDs.",
+    },
+    name="Map FASTA sequences to MAGs using Bowtie2.",
+    description="This method uses Bowtie2 to map provided FASTA sequences to "
+    "dereplicated MAGs.",
     citations=[citations["Langmead2012"]],
 )
 

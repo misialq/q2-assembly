@@ -14,8 +14,16 @@ from copy import deepcopy
 from typing import Union
 
 import pandas as pd
+import pysam
+from q2_quality_control._filter import (
+    REMOVE_SECONDARY_ALIGNMENTS,
+    KEEP_UNMAPPED_SINGLE,
+    KEEP_UNMAPPED_PAIRED,
+    REMOVE_SECONDARY_OR_UNMAPPED_SINGLE,
+    REMOVE_SECONDARY_OR_UNMAPPED_PAIRED,
+)
 from q2_types.bowtie2 import Bowtie2IndexDirFmt
-from q2_types.feature_data import FeatureData
+from q2_types.feature_data import FeatureData, DNAFASTAFormat
 from q2_types.per_sample_sequences import (
     BAMDirFmt,
     MultiBowtie2IndexDirFmt,
@@ -28,7 +36,7 @@ from q2_types.per_sample_sequences import (
 from q2_types.sample_data import SampleData
 from qiime2.core.type import Properties
 
-from .._utils import _process_common_input_params, run_commands_with_pipe
+from .._utils import _process_common_input_params, run_commands_with_pipe, run_command
 from .utils import _is_flat_dir, _process_bowtie2_arg
 
 
@@ -333,8 +341,8 @@ def _map_sample_reads(
 
         try:
             run_commands_with_pipe(
-                cmd1=cmd,
-                cmd2=["samtools", "view", "-bS", "-o", bam_result],
+                cmd,
+                ["samtools", "view", "-bS", "-o", bam_result],
                 verbose=True,
             )
         except subprocess.CalledProcessError as e:
@@ -428,3 +436,150 @@ def _gather_feature_data(
         full_set[samp]["index"] = os.path.join(str(index), "index")
 
     return full_set
+
+
+def map_seqs_to_genomes(
+    index: Bowtie2IndexDirFmt,
+    sequences: DNAFASTAFormat,
+    exclude_seqs: bool = True,
+    skip: int = 0,
+    qupto: int = "unlimited",
+    trim5: int = 0,
+    trim3: int = 0,
+    trim_to: str = "untrimmed",
+    phred33: bool = False,
+    phred64: bool = False,
+    mode: str = "local",
+    sensitivity: str = "sensitive",
+    n: int = 0,
+    len: int = 22,
+    i: str = "S,1,1.15",
+    n_ceil: str = "L,0,0.15",
+    dpad: int = 15,
+    gbar: int = 4,
+    ignore_quals: bool = False,
+    nofw: bool = False,
+    norc: bool = False,
+    no_1mm_upfront: bool = False,
+    end_to_end: bool = False,
+    local: bool = False,
+    ma: int = 2,
+    mp: int = 6,
+    np: int = 1,
+    rdg: str = "5,3",
+    rfg: str = "5,3",
+    k: int = "off",
+    a: bool = False,
+    d: int = 15,
+    r: int = 2,
+    minins: int = 0,
+    maxins: int = 500,
+    valid_mate_orientations: str = "fr",
+    no_mixed: bool = False,
+    no_discordant: bool = False,
+    dovetail: bool = False,
+    no_contain: bool = False,
+    no_overlap: bool = False,
+    offrate: int = "off",
+    threads: int = 1,
+    reorder: bool = False,
+    mm: bool = False,
+    seed: int = 0,
+    non_deterministic: bool = False,
+) -> (DNAFASTAFormat, dict):
+    for param, val in {
+        (qupto, "unlimited"),
+        (trim_to, "untrimmed"),
+        (k, "off"),
+        (offrate, "off"),
+    }:
+        param = None if param == val else param
+
+    kwargs = {
+        k: v
+        for k, v in locals().items()
+        if k not in ["sequences", "index", "sensitivity", "mode"]
+    }
+
+    common_args = _process_common_input_params(
+        processing_func=_process_bowtie2_arg, params=kwargs
+    )
+    if mode == "local":
+        common_args.append(f"--{sensitivity}-{mode}")
+    else:
+        common_args.append(f"--{sensitivity}")
+
+    with tempfile.NamedTemporaryFile() as sam_f, tempfile.NamedTemporaryFile() as bam_f:
+        samfile_output_path = sam_f.name
+        bamfile_output_path = bam_f.name
+        mapped_seqs = DNAFASTAFormat()
+
+        # align to reference with bowtie
+        bowtie_cmd = [
+            "bowtie2",
+            "-f",
+            "-x",
+            os.path.join(str(index), "index"),
+            "-U",
+            str(sequences),
+            *common_args,
+        ]
+
+        if exclude_seqs:
+            sam_flags = ["-F", REMOVE_SECONDARY_ALIGNMENTS, "-f", KEEP_UNMAPPED_SINGLE]
+        else:
+            sam_flags = ["-F", REMOVE_SECONDARY_OR_UNMAPPED_SINGLE]
+
+        samtools_command = [
+            "samtools",
+            "view",
+            "-bS",
+            samfile_output_path,
+            "-o",
+            bamfile_output_path,
+            *sam_flags,
+        ]
+
+        try:
+            run_commands_with_pipe(
+                cmd1=bowtie_cmd,
+                cmd2=samtools_command,
+                verbose=True,
+            )
+        except subprocess.CalledProcessError as e:
+            raise Exception(
+                "An error was encountered while running Bowtie2, "
+                f"(return code {e.returncode}), please inspect "
+                "stdout and stderr to learn more."
+            )
+
+        # Convert to FASTA with samtools
+        # -s /dev/null excludes singletons
+        # -n keeps samtools from altering header IDs!
+        convert_command = [
+            "samtools",
+            "fasta",
+            "-0",
+            str(mapped_seqs),
+            "-s",
+            "/dev/null",
+            "-@",
+            str(threads - 1),
+            "-n",
+            bamfile_output_path,
+        ]
+        run_command(convert_command)
+
+        id_map = {}
+        with pysam.AlignmentFile(bamfile_output_path, "rb") as aln:
+            for rec in aln.fetch(until_eof=True):
+                if rec.is_unmapped or rec.is_secondary or rec.is_supplementary:
+                    continue
+                qname = rec.query_name
+                rname = aln.get_reference_name(rec.reference_id)  # None if unmapped
+                if qname not in id_map:
+                    id_map[qname] = [rname]
+                else:
+                    id_map[qname].append(rname)
+
+        return mapped_seqs, id_map
