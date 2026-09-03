@@ -119,7 +119,9 @@ plugin.methods.register_function(
     input_descriptions={"contigs": "The contigs to be renamed."},
     parameter_descriptions={
         "uuid_type": "The type of UUID to use as the new contig names.",
-        "include_sample_id": "Whether to include the sample ID in the new contig names.",
+        "include_sample_id": (
+            "Whether to include the sample ID in the new contig names."
+        ),
         "separator": "The separator to use between the sample ID and the contig ID.",
     },
     name="Rename contigs using unique IDs.",
