@@ -120,11 +120,8 @@ class TestUtils(TestPluginBase):
                 for record in skbio.read(sample_fp, format="fasta")
             }
 
-            obs_samples = {_id.split("-")[0] for _id in new_contig_ids}
-            obs_counts = Counter(name.split("-")[0] for name in new_contig_ids)
-
-            self.assertSetEqual(obs_samples, {"sample1", "sample2"})
-            self.assertDictEqual(obs_counts, {"sample1": 10, "sample2": 4})
+            obs_samples = Counter(name.split("-")[0] for name in new_contig_ids)
+            self.assertDictEqual(obs_samples, {"sample1": 10, "sample2": 4})
 
     @parameterized.expand(["shortuuid", "uuid3", "uuid4", "uuid5"])
     @patch("q2_assembly.helpers.helpers.modify_contig_ids")
