@@ -31,10 +31,8 @@ def rename_contigs(
         )
 
     for sample_id, contigs_fp in renamed_contigs.sample_dict().items():
-        if include_sample_id:
-            modify_contig_ids(contigs_fp, sample_id, uuid_type, separator)
-        else:
-            modify_contig_ids(contigs_fp, sample_id, uuid_type)
+        sep = separator if include_sample_id else None
+        modify_contig_ids(contigs_fp, sample_id, uuid_type, sep)
 
     return renamed_contigs
 
