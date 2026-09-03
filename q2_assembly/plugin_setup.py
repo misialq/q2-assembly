@@ -123,9 +123,12 @@ plugin.methods.register_function(
         "separator": "The separator to use between the sample ID and the contig ID.",
     },
     name="Rename contigs using unique IDs.",
-    description="Takes contigs for each samples in SampleData[Contigs] "
-    "and renames them by changing their IDs using one of the following "
-    "functions: shortuuid, uuid3, uuid4, uuid5.",
+    description=(
+        "Takes contigs for each samples in SampleData[Contigs] "
+        "and renames them by changing their IDs using one of the following "
+        "functions: shortuuid, uuid3, uuid4, uuid5. Optionally, contig IDs "
+        "will be prefix with their corresponding sample ID."
+    ),
 )
 
 plugin.methods.register_function(

@@ -179,8 +179,7 @@ def modify_contig_ids(
     contig_file: str,
     sample: str,
     uuid_type: str,
-    sample_id: Optional[str] = None,
-    separator: str = ":",
+    separator: Optional[str] = None,
 ):
     """Modifies the contig IDs to include the sample name and UUID.
 
@@ -188,7 +187,6 @@ def modify_contig_ids(
         contig_file: Path to the contig file.
         sample: Sample name to be included in the contig ID.
         uuid_type: UUID type to be used in the contig ID.
-        sample_id: Sample ID to be used in the contig ID.
         separator: Separator to be used in the contig ID.
     """
 
@@ -208,8 +206,8 @@ def modify_contig_ids(
                 else:
                     new_id = str(uuid_func(NAMESPACE_OID, contig.metadata["id"]))
 
-                if sample_id:
-                    new_id = f"{sample_id}{separator}{new_id}"
+                if separator is not None:
+                    new_id = f"{sample}{separator}{new_id}"
 
                 contig.metadata["id"] = new_id
                 io.write(contig, format="fasta", into=modified_contigs)

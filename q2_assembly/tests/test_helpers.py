@@ -14,6 +14,7 @@ import tempfile
 import unittest
 import uuid
 from pathlib import Path
+from typing import Counter
 from unittest.mock import ANY, call, patch
 
 import shortuuid
@@ -77,19 +78,18 @@ class TestUtils(TestPluginBase):
 
             contigs_test = ContigSequencesDirFmt(tmp, "r")
 
-            renamed_contigs = rename_contigs(contigs_test, uuid_type)
+            renamed_contigs = rename_contigs(
+                contigs_test, uuid_type, include_sample_id=False
+            )
 
-            new_contig_ids = set()
+            new_contig_ids = {
+                record.metadata["id"]
+                for sample_fp in renamed_contigs.sample_dict().values()
+                for record in skbio.read(sample_fp, format="fasta")
+            }
 
-            i = 0
-            for sample_id, sample_fp in renamed_contigs.sample_dict().items():
-                for record in skbio.read(sample_fp, format="fasta"):
-                    new_contig_ids.add(record.metadata["id"])
-                    i = i + 1
-
-            self.assertEqual(
-                len(new_contig_ids), i
-            )  # ensure the IDs are unique across samples
+            # ensure the IDs are unique across samples
+            self.assertEqual(len(new_contig_ids), 14)
 
             # check if type of generated id is correct
             if uuid_type == "shortuuid":
@@ -99,6 +99,33 @@ class TestUtils(TestPluginBase):
             else:
                 self.assertTrue(all(regex.match(new_id) for new_id in new_contig_ids))
 
+    def test_rename_contigs_with_separator(self):
+        contigs = ContigSequencesDirFmt(self.get_data_path("contigs"), "r")
+
+        with tempfile.TemporaryDirectory() as tmp:
+            for contig_fp in contigs.sample_dict().values():
+                shutil.copyfile(
+                    contig_fp, os.path.join(tmp, os.path.basename(contig_fp))
+                )
+
+            contigs_test = ContigSequencesDirFmt(tmp, "r")
+
+            renamed_contigs = rename_contigs(
+                contigs_test, "shortuuid", include_sample_id=True, separator="-"
+            )
+
+            new_contig_ids = {
+                record.metadata["id"]
+                for sample_fp in renamed_contigs.sample_dict().values()
+                for record in skbio.read(sample_fp, format="fasta")
+            }
+
+            obs_samples = {_id.split("-")[0] for _id in new_contig_ids}
+            obs_counts = Counter(name.split("-")[0] for name in new_contig_ids)
+
+            self.assertSetEqual(obs_samples, {"sample1", "sample2"})
+            self.assertDictEqual(obs_counts, {"sample1": 10, "sample2": 4})
+
     @parameterized.expand(["shortuuid", "uuid3", "uuid4", "uuid5"])
     @patch("q2_assembly.helpers.helpers.modify_contig_ids")
     def test_rename_contigs_method_call(self, uuid_type, p1):
@@ -106,7 +133,7 @@ class TestUtils(TestPluginBase):
         _ = rename_contigs(contigs, uuid_type)
         calls = []
         for sample_id, contig_fp in contigs.sample_dict().items():
-            calls.append(call(ANY, sample_id, uuid_type))
+            calls.append(call(ANY, sample_id, uuid_type, ":"))
 
         p1.assert_has_calls(calls)
 
