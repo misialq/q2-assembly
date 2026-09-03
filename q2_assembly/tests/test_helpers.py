@@ -89,6 +89,7 @@ class TestUtils(TestPluginBase):
             }
 
             # ensure the IDs are unique across samples
+            # there are 14 contigs in the test data
             self.assertEqual(len(new_contig_ids), 14)
 
             # check if type of generated id is correct
