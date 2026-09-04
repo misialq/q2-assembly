@@ -141,9 +141,7 @@ def _assemble_spades(
         with tempfile.TemporaryDirectory() as tmpdir:
             extension = get_file_extension(fwds[0])
             fwd = os.path.join(tmpdir, f"pooled_fwd{extension}")
-            rev = (
-                os.path.join(tmpdir, f"pooled_rev{extension}") if paired else None
-            )
+            rev = os.path.join(tmpdir, f"pooled_rev{extension}") if paired else None
 
             concatenate_files(fwds, fwd)
             if paired:
