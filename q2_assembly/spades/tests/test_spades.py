@@ -263,16 +263,16 @@ class TestSpades(TestPluginBase):
         )
         # to be modified accordingly
         # if reads type change in the tests/data/reads/paired_end directory
-        fwd = os.path.join("/tmp", "mock_tmp_dir", "all_contigs_fwd.fastq.gz")
-        rev = os.path.join("/tmp", "mock_tmp_dir", "all_contigs_rev.fastq.gz")
-        exp_calls = [call("all_contigs", fwd, rev, self.test_params_list, ANY)]
+        fwd = os.path.join("/tmp", "mock_tmp_dir", "pooled_fwd.fastq.gz")
+        rev = os.path.join("/tmp", "mock_tmp_dir", "pooled_rev.fastq.gz")
+        exp_calls = [call("pooled", fwd, rev, self.test_params_list, ANY)]
 
         p1.assert_has_calls(exp_calls, any_order=False)
         p4.assert_has_calls(
             [
                 call(
-                    os.path.join(str(obs), "all_contigs.fa"),
-                    "all_contigs",
+                    os.path.join(str(obs), "pooled_contigs.fa"),
+                    "pooled",
                     "shortuuid",
                     ":",
                 )
@@ -302,16 +302,16 @@ class TestSpades(TestPluginBase):
         # to be modified accordingly
         # if reads type change in the
         # tests/data/reads/single-samples/paired_end directory
-        fwd = os.path.join("/tmp", "mock_tmp_dir", "all_contigs_fwd.fastq.gz")
-        rev = os.path.join("/tmp", "mock_tmp_dir", "all_contigs_rev.fastq.gz")
+        fwd = os.path.join("/tmp", "mock_tmp_dir", "pooled_fwd.fastq.gz")
+        rev = os.path.join("/tmp", "mock_tmp_dir", "pooled_rev.fastq.gz")
 
-        exp_calls = [call("all_contigs", fwd, rev, self.test_params_list, ANY)]
+        exp_calls = [call("pooled", fwd, rev, self.test_params_list, ANY)]
         p1.assert_has_calls(exp_calls, any_order=False)
         p4.assert_has_calls(
             [
                 call(
-                    os.path.join(str(obs), "all_contigs.fa"),
-                    "all_contigs",
+                    os.path.join(str(obs), "pooled_contigs.fa"),
+                    "pooled",
                     "shortuuid",
                     ":",
                 )

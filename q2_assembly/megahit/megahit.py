@@ -266,10 +266,10 @@ def assemble_megahit_helper(
         fwd = ",".join(manifest["forward"])
         rev = ",".join(manifest["reverse"]) if paired else None
 
-        _process_sample("all_contigs", fwd, rev, common_args, result)
+        _process_sample("pooled", fwd, rev, common_args, result)
         modify_contig_ids(
-            os.path.join(str(result), "all_contigs.fa"),
-            "all_contigs",
+            os.path.join(str(result), "pooled_contigs.fa"),
+            "pooled",
             uuid_type,
             separator,
         )

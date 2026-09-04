@@ -140,7 +140,7 @@ class TestMegahit(TestPluginBase):
                     rev.append(self.get_fwd_rev_paths(kind, s, is_single_sample)[1])
             exp_calls.append(
                 call(
-                    "all_contigs",
+                    "pooled",
                     ",".join(fwd),
                     (",".join(rev) if len(rev) != 0 else None),
                     self.test_params_list,
@@ -338,8 +338,8 @@ class TestMegahit(TestPluginBase):
 
         p1.assert_has_calls(exp_calls, any_order=False)
         p2.assert_has_calls([
-            call(os.path.join(str(obs), "all_contigs.fa"),
-                 "all_contigs", "shortuuid", ":")
+            call(os.path.join(str(obs), "pooled_contigs.fa"),
+                 "pooled", "shortuuid", ":")
         ])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
@@ -362,8 +362,8 @@ class TestMegahit(TestPluginBase):
 
         p1.assert_has_calls(exp_calls, any_order=False)
         p2.assert_has_calls([
-            call(os.path.join(str(obs), "all_contigs.fa"),
-                 "all_contigs", "shortuuid", ":")
+            call(os.path.join(str(obs), "pooled_contigs.fa"),
+                 "pooled", "shortuuid", ":")
         ])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
@@ -386,8 +386,8 @@ class TestMegahit(TestPluginBase):
 
         p1.assert_has_calls(exp_calls, any_order=False)
         p2.assert_has_calls([
-            call(os.path.join(str(obs), "all_contigs.fa"),
-                 "all_contigs", "shortuuid", ":")
+            call(os.path.join(str(obs), "pooled_contigs.fa"),
+                 "pooled", "shortuuid", ":")
         ])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
@@ -410,8 +410,8 @@ class TestMegahit(TestPluginBase):
 
         p1.assert_has_calls(exp_calls, any_order=False)
         p2.assert_has_calls([
-            call(os.path.join(str(obs), "all_contigs.fa"),
-                 "all_contigs", "shortuuid", ":")
+            call(os.path.join(str(obs), "pooled_contigs.fa"),
+                 "pooled", "shortuuid", ":")
         ])
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
