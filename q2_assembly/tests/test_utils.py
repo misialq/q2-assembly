@@ -171,29 +171,71 @@ class TestUtils(TestPluginBase):
     @parameterized.expand(("shortuuid", "uuid3", "uuid4", "uuid5"))
     def test_modify_contig_ids(self, uuid_type):
         contigs_path = self.get_data_path("contigs")
-        new_ids_sample1 = []
-        new_ids_sample2 = []
+        old_ids, new_ids = {}, {}
+        samples = ["sample1", "sample2"]
         with tempfile.TemporaryDirectory() as tmp:
-            for sample in ["sample1", "sample2"]:
+            for sample in samples:
+                old_ids[sample] = []
+                new_ids[sample] = []
                 original_sample_path = os.path.join(
                     contigs_path, f"{sample}_contigs.fa"
                 )
                 new_sample_path = os.path.join(tmp, f"{sample}_contigs.fa")
                 shutil.copy(original_sample_path, tmp)
-                modify_contig_ids(new_sample_path, sample, uuid_type)
+                modify_contig_ids(new_sample_path, sample, "shortuuid")
 
-                for contig in skbio.io.read(new_sample_path, format="fasta"):
-                    if sample == "sample1":
-                        new_ids_sample1.append(contig.metadata["id"])
-                    else:
-                        new_ids_sample2.append(contig.metadata["id"])
+                old_ids[sample] = [
+                    contig.metadata["id"]
+                    for contig in skbio.io.read(original_sample_path, format="fasta")
+                ]
 
-            new_ids_sample1_set = set(new_ids_sample1)
-            new_ids_sample2_set = set(new_ids_sample2)
-            self.assertEqual(len(new_ids_sample1), len(new_ids_sample1_set))
-            self.assertEqual(len(new_ids_sample2), len(new_ids_sample2_set))
+                new_ids[sample] = [
+                    contig.metadata["id"]
+                    for contig in skbio.io.read(new_sample_path, format="fasta")
+                ]
+
+            for sample in samples:
+                self.assertEqual(len(new_ids[sample]), len(set(new_ids[sample])))
+                self.assertEqual(len(new_ids[sample]), len(old_ids[sample]))
+                self.assertNotEqual(new_ids[sample], old_ids[sample])
             self.assertEqual(
-                len(new_ids_sample1_set.intersection(new_ids_sample2_set)), 0
+                len(set(new_ids["sample1"]).intersection(set(new_ids["sample2"]))), 0
+            )
+
+    def test_modify_contig_ids_sample_id_present(self):
+        contigs_path = self.get_data_path("contigs-renamed")
+        old_ids, new_ids = {}, {}
+        samples = ["sample1", "sample2"]
+        with tempfile.TemporaryDirectory() as tmp:
+            for sample in samples:
+                old_ids[sample] = []
+                new_ids[sample] = []
+                original_sample_path = os.path.join(
+                    contigs_path, f"{sample}_contigs.fa"
+                )
+                new_sample_path = os.path.join(tmp, f"{sample}_contigs.fa")
+                shutil.copy(original_sample_path, tmp)
+                modify_contig_ids(new_sample_path, sample, "shortuuid")
+
+                old_ids[sample] = [
+                    contig.metadata["id"]
+                    for contig in skbio.io.read(original_sample_path, format="fasta")
+                ]
+
+                new_ids[sample] = [
+                    contig.metadata["id"]
+                    for contig in skbio.io.read(new_sample_path, format="fasta")
+                ]
+
+            for sample in samples:
+                self.assertEqual(len(new_ids[sample]), len(set(new_ids[sample])))
+                self.assertEqual(len(new_ids[sample]), len(old_ids[sample]))
+                self.assertNotEqual(new_ids[sample], old_ids[sample])
+                # make sure that sample IDs do not get repeatedly added to the contig ID
+                # the ID should be regenerated every time
+                self.assertSetEqual({_id.count(sample) for _id in old_ids[sample]}, {1})
+            self.assertEqual(
+                len(set(new_ids["sample1"]).intersection(set(new_ids["sample2"]))), 0
             )
 
     def test_get_sample_from_path(self):
