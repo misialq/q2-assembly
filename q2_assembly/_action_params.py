@@ -89,6 +89,7 @@ spades_params = {
     "phred_offset": Str % Choices(["auto-detect", "33", "64"]),
     "debug": Bool,
     "uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"]),
+    "separator": Str,
 }
 # fmt: off
 spades_param_descriptions = {
@@ -119,6 +120,7 @@ spades_param_descriptions = {
     "debug": "Runs SPAdes in debug mode.",
     "coassemble": "Co-assemble reads into contigs from all samples.",
     "uuid_type": "UUID type to be used for contig ID generation.",
+    "separator": "Separator to be used in the contig IDs.",
 }
 
 # fmt: on

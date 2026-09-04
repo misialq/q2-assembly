@@ -218,6 +218,7 @@ class TestSpades(TestPluginBase):
             reads=input,
             meta=False,
             uuid_type="shortuuid",
+            separator=":",
             common_args=self.test_params_list,
         )
         exp_calls = self.generate_exp_calls(sample_ids=(1, 2), kind="paired")
@@ -226,12 +227,16 @@ class TestSpades(TestPluginBase):
         p2.assert_has_calls(
             [
                 call(
-                    os.path.join(str(obs), "sample1_contigs.fa"), "sample1", "shortuuid"
+                    os.path.join(str(obs), "sample1_contigs.fa"),
+                    "sample1",
+                    "shortuuid",
+                    ":",
                 ),
                 call(
                     os.path.join(str(obs), "sample2_contigs.fa"),
                     "sample2",
                     "shortuuid",
+                    ":",
                 ),
             ]
         )
@@ -253,6 +258,7 @@ class TestSpades(TestPluginBase):
             meta=False,
             coassemble=True,
             uuid_type="shortuuid",
+            separator=":",
             common_args=self.test_params_list,
         )
         # to be modified accordingly
@@ -263,7 +269,14 @@ class TestSpades(TestPluginBase):
 
         p1.assert_has_calls(exp_calls, any_order=False)
         p4.assert_has_calls(
-            [call(os.path.join(str(obs), "all_contigs.fa"), "all_contigs", "shortuuid")]
+            [
+                call(
+                    os.path.join(str(obs), "all_contigs.fa"),
+                    "all_contigs",
+                    "shortuuid",
+                    ":",
+                )
+            ]
         )
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
@@ -283,6 +296,7 @@ class TestSpades(TestPluginBase):
             meta=False,
             coassemble=True,
             uuid_type="shortuuid",
+            separator=":",
             common_args=self.test_params_list,
         )
         # to be modified accordingly
@@ -294,7 +308,14 @@ class TestSpades(TestPluginBase):
         exp_calls = [call("all_contigs", fwd, rev, self.test_params_list, ANY)]
         p1.assert_has_calls(exp_calls, any_order=False)
         p4.assert_has_calls(
-            [call(os.path.join(str(obs), "all_contigs.fa"), "all_contigs", "shortuuid")]
+            [
+                call(
+                    os.path.join(str(obs), "all_contigs.fa"),
+                    "all_contigs",
+                    "shortuuid",
+                    ":",
+                )
+            ]
         )
         self.assertIsInstance(obs, ContigSequencesDirFmt)
 
@@ -310,6 +331,7 @@ class TestSpades(TestPluginBase):
                 reads=input,
                 meta=True,
                 uuid_type="shortuuid",
+                separator=":",
                 common_args=self.test_params_list,
             )
 
@@ -327,6 +349,7 @@ class TestSpades(TestPluginBase):
                 meta=True,
                 coassemble=True,
                 uuid_type="shortuuid",
+                separator=":",
                 common_args=self.test_params_list,
             )
             p2.assert_not_called()
@@ -345,6 +368,7 @@ class TestSpades(TestPluginBase):
                 meta=True,
                 coassemble=True,
                 uuid_type="shortuuid",
+                separator=":",
                 common_args=self.test_params_list,
             )
             p2.assert_not_called()
@@ -374,6 +398,7 @@ class TestSpades(TestPluginBase):
             meta=True,
             coassemble=False,
             uuid_type="shortuuid",
+            separator=":",
             common_args=exp_args,
         )
 
@@ -389,16 +414,23 @@ class TestSpades(TestPluginBase):
             meta=False,
             coassemble=False,
             uuid_type=uuid_type,
+            separator=":",
             common_args=self.test_params_list,
         )
 
         p2.assert_has_calls(
             [
                 call(
-                    os.path.join(str(obs), "sample1_contigs.fa"), "sample1", uuid_type
+                    os.path.join(str(obs), "sample1_contigs.fa"),
+                    "sample1",
+                    uuid_type,
+                    ":",
                 ),
                 call(
-                    os.path.join(str(obs), "sample2_contigs.fa"), "sample2", uuid_type
+                    os.path.join(str(obs), "sample2_contigs.fa"),
+                    "sample2",
+                    uuid_type,
+                    ":",
                 ),
             ]
         )
