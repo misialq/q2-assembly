@@ -133,6 +133,7 @@ def assemble_megahit(
     num_partitions=None,
     coassemble=False,
     uuid_type="shortuuid",
+    separator=":",
 ):
     kwargs = {
         # removing num_partitions from this dict to include it in the parameters
@@ -195,6 +196,7 @@ def _assemble_megahit(
     min_contig_len: int = 200,
     coassemble: bool = False,
     uuid_type: str = "shortuuid",
+    separator: str = ":",
 ) -> ContigSequencesDirFmt:
     if max_tip_len == "auto":
         max_tip_len = None
@@ -218,19 +220,23 @@ def _assemble_megahit(
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["reads", "uuid_type", "coassemble"]
+        if k not in ["reads", "uuid_type", "coassemble", "separator"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_megahit_arg, params=kwargs
     )
 
     return assemble_megahit_helper(
-        reads=reads, coassemble=coassemble, uuid_type=uuid_type, common_args=common_args
+        reads=reads,
+        coassemble=coassemble,
+        uuid_type=uuid_type,
+        separator=separator,
+        common_args=common_args,
     )
 
 
 def assemble_megahit_helper(
-    reads, coassemble, uuid_type, common_args
+    reads, coassemble, uuid_type, separator, common_args
 ) -> ContigSequencesDirFmt:
     """Runs the assembly for all available samples.
 
@@ -244,6 +250,7 @@ def assemble_megahit_helper(
         coassemble: boolean variable that specifies whether
             reads from all samples are co-assembled.
         uuid_type: UUID type to be used in the contig ID.
+        separator: Separator to be used in the contig ID.
 
     Returns:
         result (ContigSequencesDirFmt): Assembled contigs.
@@ -261,7 +268,10 @@ def assemble_megahit_helper(
 
         _process_sample("all_contigs", fwd, rev, common_args, result)
         modify_contig_ids(
-            os.path.join(str(result), "all_contigs.fa"), "all_contigs", uuid_type
+            os.path.join(str(result), "all_contigs.fa"),
+            "all_contigs",
+            uuid_type,
+            separator,
         )
     else:
         for samp in list(manifest.index):
@@ -270,7 +280,10 @@ def assemble_megahit_helper(
 
             _process_sample(samp, fwd, rev, common_args, result)
             modify_contig_ids(
-                os.path.join(str(result), f"{samp}_contigs.fa"), samp, uuid_type
+                os.path.join(str(result), f"{samp}_contigs.fa"),
+                samp,
+                uuid_type,
+                separator,
             )
 
     return result

@@ -32,6 +32,7 @@ megahit_params = {
     "no_hw_accel": Bool,
     "min_contig_len": Int,
     "uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"]),
+    "separator": Str,
 }
 # fmt: off
 megahit_param_descriptions = {
@@ -65,6 +66,7 @@ megahit_param_descriptions = {
     "min_contig_len": "Minimum length of contigs to output.",
     "coassemble": "Co-assemble reads into contigs from all samples.",
     "uuid_type": "UUID type to be used for contig ID generation.",
+    "separator": "Separator to be used in the contig IDs.",
 }
 # fmt: on
 spades_params = {
