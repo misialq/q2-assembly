@@ -355,6 +355,20 @@ class TestBowtie2Mapping(TestPluginBase):
         p2.assert_has_calls(exp_calls)
 
     @patch("q2_assembly.bowtie2.mapping._map_sample_reads")
+    @patch("q2_assembly.bowtie2.mapping._gather_feature_data")
+    def test_map_reads_to_coassembled_contigs(self, p1, p2):
+        input_reads = self.get_data_path("reads/single-end")
+        input_index = self.get_data_path("indices/from_mags_derep")
+        reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
+        index = Bowtie2IndexDirFmt(input_index, mode="r")
+        p1.return_value = self.test_samples_for_features
+
+        _map_reads_to_contigs(index=index, reads=reads)
+
+        p1.assert_called_once_with(index, ANY, False)
+        self.assertEqual(p2.call_count, len(self.test_samples_for_features))
+
+    @patch("q2_assembly.bowtie2.mapping._map_sample_reads")
     @patch("q2_assembly.bowtie2.mapping._gather_sample_data")
     def test_map_reads_to_contigs_single_local(self, p1, p2):
         input_reads = self.get_data_path("reads/single-end")
@@ -444,6 +458,28 @@ class TestBowtie2Mapping(TestPluginBase):
             )._result()
 
         out.validate()
+        self.assertIs(out.format, BAMDirFmt)
+
+    def test_map_reads_to_coassembled_contigs_parallel(self):
+        input_index = self.get_data_path("indices/from_mags_derep")
+        input_reads = get_relative_data_path(
+            self.root_test_package, "formatted-reads/single-end"
+        )
+
+        index = Bowtie2IndexDirFmt(input_index, mode="r")
+        index = Artifact.import_data(
+            "FeatureData[SingleBowtie2Index % Properties('contigs')]", index
+        )
+        reads = SingleLanePerSampleSingleEndFastqDirFmt(input_reads, mode="r")
+        reads = Artifact.import_data("SampleData[SequencesWithQuality]", reads)
+
+        with self.test_config:
+            (out,) = self.map_reads(index=index, reads=reads)._result()
+
+        out.validate()
+        self.assertEqual(
+            str(out.type), "FeatureData[AlignmentMap % Properties('sorted')]"
+        )
         self.assertIs(out.format, BAMDirFmt)
 
     @patch("q2_assembly.bowtie2.mapping._map_sample_reads")

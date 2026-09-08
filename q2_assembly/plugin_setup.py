@@ -199,11 +199,18 @@ plugin.pipelines.register_function(
     citations=[citations["Mikheenko2016"], citations["Mikheenko2018"]],
 )
 
+I_contigs, O_contig_index = TypeMap(
+    {
+        SampleData[Contigs]: SampleData[SingleBowtie2Index % Properties("contigs")],
+        FeatureData[Contig]: FeatureData[SingleBowtie2Index % Properties("contigs")],
+    }
+)
+
 plugin.pipelines.register_function(
     function=q2_assembly.indexing.index_contigs,
-    inputs={"contigs": SampleData[Contigs]},
+    inputs={"contigs": I_contigs},
     parameters={**bowtie2_indexing_params, **partition_params},
-    outputs=[("index", SampleData[SingleBowtie2Index % Properties("contigs")])],
+    outputs=[("index", O_contig_index)],
     input_descriptions={"contigs": "Contigs to be indexed."},
     parameter_descriptions={
         **bowtie2_indexing_param_descriptions,
@@ -225,6 +232,19 @@ plugin.methods.register_function(
     output_descriptions={"index": "Bowtie2 indices generated for input sequences."},
     name="Index contigs using Bowtie2.",
     description="This method uses Bowtie2 to generate indices of " "provided contigs.",
+    citations=[citations["Langmead2012"]],
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.indexing._index_coassembled_contigs,
+    inputs={"contigs": FeatureData[Contig]},
+    parameters=bowtie2_indexing_params,
+    outputs=[("index", FeatureData[SingleBowtie2Index % Properties("contigs")])],
+    input_descriptions={"contigs": "Co-assembled contigs to be indexed."},
+    parameter_descriptions=bowtie2_indexing_param_descriptions,
+    output_descriptions={"index": "Bowtie2 index generated for input sequences."},
+    name="Index co-assembled contigs using Bowtie2.",
+    description="This method uses Bowtie2 to index co-assembled contigs.",
     citations=[citations["Langmead2012"]],
 )
 
@@ -447,14 +467,24 @@ plugin.pipelines.register_function(
     citations=[citations["Langmead2012"]],
 )
 
+I_contig_index, O_contig_alignment = TypeMap(
+    {
+        SampleData[SingleBowtie2Index % Properties("contigs")]: SampleData[
+            AlignmentMap
+        ],
+        FeatureData[SingleBowtie2Index % Properties("contigs")]: FeatureData[
+            AlignmentMap
+        ],
+    }
+)
 plugin.methods.register_function(
     function=q2_assembly.mapping._map_reads_to_contigs,
     inputs={
-        "index": SampleData[SingleBowtie2Index % Properties("contigs")],
+        "index": I_contig_index,
         "reads": SampleData[PairedEndSequencesWithQuality | SequencesWithQuality],
     },
     parameters=bowtie2_mapping_params,
-    outputs=[("alignment_maps", SampleData[AlignmentMap])],
+    outputs=[("alignment_maps", O_contig_alignment)],
     input_descriptions={
         "index": "Bowtie 2 indices generated for contigs of interest.",
         "reads": "The paired- or single-end reads from which the contigs "
