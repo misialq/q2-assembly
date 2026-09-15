@@ -17,7 +17,10 @@ from q2_assembly._utils import modify_contig_ids, run_command
 
 
 def rename_contigs(
-    contigs: ContigSequencesDirFmt, uuid_type: str
+    contigs: ContigSequencesDirFmt,
+    uuid_type: str,
+    include_sample_id: bool = True,
+    separator: str = ":",
 ) -> ContigSequencesDirFmt:
     renamed_contigs = ContigSequencesDirFmt()
 
@@ -28,7 +31,8 @@ def rename_contigs(
         )
 
     for sample_id, contigs_fp in renamed_contigs.sample_dict().items():
-        modify_contig_ids(contigs_fp, sample_id, uuid_type)
+        sep = separator if include_sample_id else None
+        modify_contig_ids(contigs_fp, sample_id, uuid_type, sep)
 
     return renamed_contigs
 
