@@ -97,7 +97,7 @@ def _process_sample(sample, fwd, rev, common_args, out):
 
 
 def _assemble_spades(
-    reads, meta, common_args, uuid_type, coassemble=False
+    reads, meta, common_args, uuid_type, separator, coassemble=False
 ) -> ContigSequencesDirFmt:
     """Runs the assembly for all available samples.
 
@@ -112,6 +112,7 @@ def _assemble_spades(
         coassemble: True if user wants to coassemble reads
             from all samples.
         uuid_type: Type of UUID to be used for contig IDs.
+        separator: Separator to be used in the contig IDs.
 
     Returns:
         result (ContigSequencesDirFmt): Assembled contigs.
@@ -139,18 +140,19 @@ def _assemble_spades(
 
         with tempfile.TemporaryDirectory() as tmpdir:
             extension = get_file_extension(fwds[0])
-            fwd = os.path.join(tmpdir, f"all_contigs_fwd{extension}")
-            rev = (
-                os.path.join(tmpdir, f"all_contigs_rev{extension}") if paired else None
-            )
+            fwd = os.path.join(tmpdir, f"pooled_fwd{extension}")
+            rev = os.path.join(tmpdir, f"pooled_rev{extension}") if paired else None
 
             concatenate_files(fwds, fwd)
             if paired:
                 concatenate_files(revs, rev)
 
-            _process_sample("all_contigs", fwd, rev, common_args, result)
+            _process_sample("pooled", fwd, rev, common_args, result)
             modify_contig_ids(
-                os.path.join(str(result), "all_contigs.fa"), "all_contigs", uuid_type
+                os.path.join(str(result), "pooled_contigs.fa"),
+                "pooled",
+                uuid_type,
+                separator,
             )
 
     else:
@@ -160,7 +162,10 @@ def _assemble_spades(
 
             _process_sample(samp, fwd, rev, common_args, result)
             modify_contig_ids(
-                os.path.join(str(result), f"{samp}_contigs.fa"), samp, uuid_type
+                os.path.join(str(result), f"{samp}_contigs.fa"),
+                samp,
+                uuid_type,
+                separator,
             )
 
     return result
@@ -189,11 +194,12 @@ def assemble_spades(
     debug: bool = False,
     coassemble: bool = False,
     uuid_type: str = "shortuuid",
+    separator: str = ":",
 ) -> ContigSequencesDirFmt:
     kwargs = {
         k: v
         for k, v in locals().items()
-        if k not in ["reads", "uuid_type", "coassemble"]
+        if k not in ["reads", "uuid_type", "coassemble", "separator"]
     }
     common_args = _process_common_input_params(
         processing_func=_process_spades_arg, params=kwargs
@@ -204,5 +210,6 @@ def assemble_spades(
         meta=meta,
         coassemble=coassemble,
         uuid_type=uuid_type,
+        separator=separator,
         common_args=common_args,
     )

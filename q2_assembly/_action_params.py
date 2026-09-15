@@ -9,6 +9,8 @@
 from qiime2.core.type import Bool, Choices, Float, Int, List, Range, Str
 from qiime2.plugin import Metadata
 
+ALLOWED_SEPARATORS = [":", ";", "_", "|", ".", "C"]
+
 megahit_params = {
     "presets": Str % Choices(["meta-sensitive", "meta-large", "disabled"]),
     "min_count": Int % Range(1, None),
@@ -32,6 +34,7 @@ megahit_params = {
     "no_hw_accel": Bool,
     "min_contig_len": Int,
     "uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"]),
+    "separator": Str % Choices(ALLOWED_SEPARATORS),
 }
 # fmt: off
 megahit_param_descriptions = {
@@ -65,6 +68,7 @@ megahit_param_descriptions = {
     "min_contig_len": "Minimum length of contigs to output.",
     "coassemble": "Co-assemble reads into contigs from all samples.",
     "uuid_type": "UUID type to be used for contig ID generation.",
+    "separator": "Separator to be used in the contig IDs.",
 }
 # fmt: on
 spades_params = {
@@ -87,6 +91,7 @@ spades_params = {
     "phred_offset": Str % Choices(["auto-detect", "33", "64"]),
     "debug": Bool,
     "uuid_type": Str % Choices(["shortuuid", "uuid3", "uuid4", "uuid5"]),
+    "separator": Str % Choices(ALLOWED_SEPARATORS),
 }
 # fmt: off
 spades_param_descriptions = {
@@ -117,6 +122,7 @@ spades_param_descriptions = {
     "debug": "Runs SPAdes in debug mode.",
     "coassemble": "Co-assemble reads into contigs from all samples.",
     "uuid_type": "UUID type to be used for contig ID generation.",
+    "separator": "Separator to be used in the contig IDs.",
 }
 
 # fmt: on
