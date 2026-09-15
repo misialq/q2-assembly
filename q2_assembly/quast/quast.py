@@ -35,7 +35,6 @@ from q2_assembly.quast.utils import _parse_columns
 
 from .._utils import (
     _construct_param,
-    _get_sample_from_path,
     _modify_links,
     _process_common_input_params,
     _remove_html_element,

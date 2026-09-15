@@ -303,8 +303,7 @@ def generate_plotting_data(
               - "nx_df": DataFrame for N(x) plots.
     """
     samples = [
-        (Path(fp), sample_id)
-        for sample_id, fp in contigs_dir.sample_dict().items()
+        (Path(fp), sample_id) for sample_id, fp in contigs_dir.sample_dict().items()
     ]
 
     all_seq_gc_rows = []
