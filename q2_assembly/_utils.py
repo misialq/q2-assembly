@@ -9,6 +9,7 @@ import importlib
 import os
 import subprocess
 import tempfile
+from pathlib import Path
 from typing import List, Optional
 from uuid import NAMESPACE_OID, uuid3, uuid4, uuid5
 
@@ -130,7 +131,11 @@ def _modify_links(fp: str):
 
 def _get_sample_from_path(fp):
     """Extracts sample name from a contig's file path."""
-    return os.path.basename(fp).rsplit("_contigs.fa", maxsplit=1)[0]
+    if "_contigs" in fp:
+        _id = os.path.basename(fp).rsplit("_contigs.fa", maxsplit=1)[0]
+    else:
+        _id = Path(fp).stem
+    return _id
 
 
 def get_relative_data_path(package, filename):

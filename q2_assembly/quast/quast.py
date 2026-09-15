@@ -123,9 +123,9 @@ def _evaluate_quast(
         reads = None
         print("Both reads and mapped reads are provided. Reads will be ignored.")
 
-    for fp in sorted(glob.glob(os.path.join(str(contigs), "*_contigs.fa"))):
+    for sample, fp in sorted(contigs.sample_dict().items(), key=lambda x: x[0]):
         cmd.append(fp)
-        samples.append(_get_sample_from_path(fp))
+        samples.append(sample)
 
     if alignment_maps:
         bam_fps = sorted(
