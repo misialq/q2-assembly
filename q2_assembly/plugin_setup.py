@@ -438,7 +438,13 @@ plugin.pipelines.register_function(
 I_index, O_alignment = TypeMap(
     {
         SampleData[SingleBowtie2Index]: SampleData[AlignmentMap],
-        FeatureData[SingleBowtie2Index]: FeatureData[AlignmentMap],
+        FeatureData[SingleBowtie2Index % Properties(["contigs", "mags"])]: FeatureData[
+            AlignmentMap
+        ],
+        FeatureData[SingleBowtie2Index % Properties("contigs")]: SampleData[
+            AlignmentMap
+        ],
+        FeatureData[SingleBowtie2Index % Properties("mags")]: FeatureData[AlignmentMap],
         Bowtie2Index: SampleData[AlignmentMap],
     }
 )
@@ -467,24 +473,15 @@ plugin.pipelines.register_function(
     citations=[citations["Langmead2012"]],
 )
 
-I_contig_index, O_contig_alignment = TypeMap(
-    {
-        SampleData[SingleBowtie2Index % Properties("contigs")]: SampleData[
-            AlignmentMap
-        ],
-        FeatureData[SingleBowtie2Index % Properties("contigs")]: FeatureData[
-            AlignmentMap
-        ],
-    }
-)
 plugin.methods.register_function(
     function=q2_assembly.mapping._map_reads_to_contigs,
     inputs={
-        "index": I_contig_index,
+        "index": SampleData[SingleBowtie2Index % Properties("contigs")]
+        | FeatureData[SingleBowtie2Index % Properties("contigs")],
         "reads": SampleData[PairedEndSequencesWithQuality | SequencesWithQuality],
     },
     parameters=bowtie2_mapping_params,
-    outputs=[("alignment_maps", O_contig_alignment)],
+    outputs=[("alignment_maps", SampleData[AlignmentMap])],
     input_descriptions={
         "index": "Bowtie 2 indices generated for contigs of interest.",
         "reads": "The paired- or single-end reads from which the contigs "

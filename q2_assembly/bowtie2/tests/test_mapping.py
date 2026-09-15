@@ -478,7 +478,7 @@ class TestBowtie2Mapping(TestPluginBase):
 
         out.validate()
         self.assertEqual(
-            str(out.type), "FeatureData[AlignmentMap % Properties('sorted')]"
+            str(out.type), "SampleData[AlignmentMap % Properties('sorted')]"
         )
         self.assertIs(out.format, BAMDirFmt)
 
