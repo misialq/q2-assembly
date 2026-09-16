@@ -14,18 +14,22 @@ from subprocess import CalledProcessError
 from unittest.mock import ANY, MagicMock, call, patch
 
 from parameterized import parameterized
+from q2_types.feature_data import DNAFASTAFormat
 from q2_types.per_sample_sequences import (
     ContigSequencesDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
     SingleLanePerSampleSingleEndFastqDirFmt,
 )
+from qiime2 import Artifact
 from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.spades.spades import (
     _assemble_spades,
+    _assemble_spades_isolate,
     _process_sample,
     _process_spades_arg,
     assemble_spades,
+    assemble_spades_helper,
 )
 
 
@@ -38,6 +42,7 @@ class TestSpades(TestPluginBase):
 
     def setUp(self):
         super().setUp()
+        self.assemble_spades = self.plugin.pipelines["assemble_spades"]
         self.fake_common_args = ["--meta", "--threads", "8"]
         self.test_params_dict = {
             "isolate": False,
@@ -95,6 +100,12 @@ class TestSpades(TestPluginBase):
                 rev = self.get_reads_path(kind, s, "rev")
             exp_calls.append(call(f"sample{s}", fwd, rev, self.test_params_list, ANY))
         return exp_calls
+
+    def mock_process_sample(self, sample, fwd, rev, common_args, out):
+        shutil.copy(
+            self.get_data_path("sample_contigs.fa"),
+            os.path.join(str(out), f"{sample}_contigs.fa"),
+        )
 
     def test_process_spades_arg_simple1(self):
         obs = _process_spades_arg("not_k_list", 123)
@@ -214,7 +225,7 @@ class TestSpades(TestPluginBase):
         input_files = self.get_data_path("reads/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
-        obs = _assemble_spades(
+        obs = assemble_spades_helper(
             reads=input,
             meta=False,
             uuid_type="shortuuid",
@@ -253,7 +264,7 @@ class TestSpades(TestPluginBase):
         input_files = self.get_data_path("reads/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
-        obs = _assemble_spades(
+        obs = assemble_spades_helper(
             reads=input,
             meta=False,
             coassemble=True,
@@ -291,7 +302,7 @@ class TestSpades(TestPluginBase):
         input_files = self.get_data_path("reads/single-sample/paired-end")
         input = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
 
-        obs = _assemble_spades(
+        obs = assemble_spades_helper(
             reads=input,
             meta=False,
             coassemble=True,
@@ -327,7 +338,7 @@ class TestSpades(TestPluginBase):
         with self.assertRaisesRegex(
             NotImplementedError, 'SPAdes v3.15.2 in "meta" mode supports'
         ):
-            _assemble_spades(
+            assemble_spades_helper(
                 reads=input,
                 meta=True,
                 uuid_type="shortuuid",
@@ -344,7 +355,7 @@ class TestSpades(TestPluginBase):
         with self.assertRaisesRegex(
             NotImplementedError, 'SPAdes v3.15.2 in "meta" mode supports'
         ):
-            _assemble_spades(
+            assemble_spades_helper(
                 reads=input,
                 meta=True,
                 coassemble=True,
@@ -363,7 +374,7 @@ class TestSpades(TestPluginBase):
         with self.assertRaisesRegex(
             NotImplementedError, 'SPAdes v3.15.2 in "meta" mode supports'
         ):
-            _assemble_spades(
+            assemble_spades_helper(
                 reads=input,
                 meta=True,
                 coassemble=True,
@@ -374,12 +385,12 @@ class TestSpades(TestPluginBase):
             p2.assert_not_called()
 
     @patch("q2_assembly.spades.spades.modify_contig_ids")
-    @patch("q2_assembly.spades.spades._assemble_spades")
+    @patch("q2_assembly.spades.spades.assemble_spades_helper")
     def test_assemble_spades_process_params(self, p1, p2):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
-        _ = assemble_spades(
+        _ = _assemble_spades(
             reads=input, meta=True, threads=14, k=[1, 2], cov_cutoff="off"
         )
         exp_args = [
@@ -402,6 +413,128 @@ class TestSpades(TestPluginBase):
             common_args=exp_args,
         )
 
+    @patch("q2_assembly.spades.spades.assemble_spades_helper")
+    def test_assemble_spades_isolate_process_params(self, helper):
+        input_files = self.get_data_path("reads/single-end")
+        reads = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
+        trusted_contigs = DNAFASTAFormat(
+            self.get_data_path("sample_contigs.fa"), mode="r"
+        )
+
+        _assemble_spades_isolate(
+            reads=reads,
+            trusted_contigs=trusted_contigs,
+            threads=14,
+            k=[1, 2],
+        )
+
+        common_args = helper.call_args.kwargs["common_args"]
+        self.assertIn("--isolate", common_args)
+        trusted_index = common_args.index("--trusted-contigs")
+        self.assertEqual(common_args[trusted_index + 1], str(trusted_contigs))
+        self.assertNotIn("--meta", common_args)
+        self.assertNotIn("--careful", common_args)
+        self.assertNotIn("--only-assembler", common_args)
+
+    @parameterized.expand(
+        [
+            ("sc",),
+            ("meta",),
+            ("bio",),
+            ("corona",),
+            ("plasmid",),
+            ("metaviral",),
+            ("metaplasmid",),
+            ("only_assembler",),
+            ("careful",),
+        ]
+    )
+    def test_assemble_spades_rejects_incompatible_isolate_params(self, parameter):
+        with self.assertRaisesRegex(ValueError, parameter.replace("_", "-")):
+            assemble_spades(None, None, isolate=True, **{parameter: True})
+
+    def test_assemble_spades_rejects_trusted_contigs_without_isolate(self):
+        with self.assertRaisesRegex(ValueError, "trusted_contigs.*isolate=True"):
+            assemble_spades(None, None, trusted_contigs=object())
+
+    def test_assemble_spades_parallel_paired(self):
+        input_files = self.get_data_path("formatted-reads/paired-end")
+        input_format = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
+        samples = Artifact.import_data(
+            "SampleData[PairedEndSequencesWithQuality]", input_format
+        )
+
+        with patch(
+            "q2_assembly.spades.spades._process_sample",
+            side_effect=self.mock_process_sample,
+        ):
+            with self.test_config:
+                (out,) = self.assemble_spades.parallel(samples)._result()
+
+        out.validate()
+        self.assertIs(out.format, ContigSequencesDirFmt)
+
+    def test_assemble_spades_parallel_single(self):
+        input_files = self.get_data_path("formatted-reads/single-end")
+        input_format = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
+        samples = Artifact.import_data("SampleData[SequencesWithQuality]", input_format)
+
+        with patch(
+            "q2_assembly.spades.spades._process_sample",
+            side_effect=self.mock_process_sample,
+        ):
+            with self.test_config:
+                (out,) = self.assemble_spades.parallel(samples)._result()
+
+        out.validate()
+        self.assertIs(out.format, ContigSequencesDirFmt)
+
+    def test_assemble_spades_parallel_coassemble(self):
+        input_files = self.get_data_path("formatted-reads/paired-end")
+        input_format = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
+        samples = Artifact.import_data(
+            "SampleData[PairedEndSequencesWithQuality]", input_format
+        )
+
+        with patch(
+            "q2_assembly.spades.spades._process_sample",
+            side_effect=self.mock_process_sample,
+        ) as process_sample:
+            with self.test_config:
+                (out,) = self.assemble_spades.parallel(
+                    samples, coassemble=True
+                )._result()
+
+        process_sample.assert_called_once()
+        self.assertEqual(process_sample.call_args.args[0], "pooled")
+        out.validate()
+        self.assertEqual(str(out.type), "FeatureData[Contig]")
+
+    def test_assemble_spades_parallel_isolate(self):
+        input_files = self.get_data_path("formatted-reads/paired-end")
+        input_format = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
+        samples = Artifact.import_data(
+            "SampleData[PairedEndSequencesWithQuality]", input_format
+        )
+        trusted_contigs = Artifact.import_data(
+            "FeatureData[Sequence]", self.get_data_path("sample_contigs.fa")
+        )
+
+        with patch(
+            "q2_assembly.spades.spades._process_sample",
+            side_effect=self.mock_process_sample,
+        ):
+            with self.test_config:
+                (out,) = self.assemble_spades.parallel(
+                    samples,
+                    trusted_contigs=trusted_contigs,
+                    isolate=True,
+                )._result()
+
+        out.validate()
+        self.assertEqual(str(out.type), "SampleData[Contigs]")
+        self.assertIs(out.format, ContigSequencesDirFmt)
+
     @parameterized.expand([("shortuuid",), ("uuid3",), ("uuid4",), ("uuid5",)])
     @patch("q2_assembly.spades.spades.modify_contig_ids")
     @patch("q2_assembly.spades.spades._process_sample")
@@ -409,7 +542,7 @@ class TestSpades(TestPluginBase):
         input_files = self.get_data_path("reads/single-end")
         input = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
 
-        obs = _assemble_spades(
+        obs = assemble_spades_helper(
             reads=input,
             meta=False,
             coassemble=False,
