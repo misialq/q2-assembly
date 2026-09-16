@@ -13,6 +13,7 @@ import tempfile
 from typing import List, Union
 
 import pandas as pd
+from q2_types.feature_data import DNAFASTAFormat
 from q2_types.per_sample_sequences import (
     ContigSequencesDirFmt,
     PairedEndSequencesWithQuality,
@@ -30,6 +31,18 @@ from .._utils import (
     modify_contig_ids,
     run_command,
 )
+
+ISOLATE_INCOMPATIBLE_PARAMS = {
+    "sc",
+    "meta",
+    "bio",
+    "corona",
+    "plasmid",
+    "metaviral",
+    "metaplasmid",
+    "only_assembler",
+    "careful",
+}
 
 
 def _process_spades_arg(arg_key, arg_val):
@@ -182,6 +195,7 @@ def assemble_spades_helper(
 def assemble_spades(
     ctx,
     reads,
+    trusted_contigs=None,
     isolate=False,
     sc=False,
     meta=False,
@@ -204,13 +218,32 @@ def assemble_spades(
     uuid_type="shortuuid",
     separator=":",
 ):
-    kwargs = {
-        key: value
-        for key, value in locals().items()
-        if key not in ["ctx", "reads", "num_partitions"]
-    }
+    params = locals().copy()
+    if trusted_contigs is not None and not isolate:
+        raise ValueError(
+            "The trusted_contigs input can only be used when isolate=True."
+        )
 
-    _assemble_spades = ctx.get_action("assembly", "_assemble_spades")
+    if isolate:
+        incompatible = sorted(key for key in ISOLATE_INCOMPATIBLE_PARAMS if params[key])
+        if incompatible:
+            formatted = ", ".join(name.replace("_", "-") for name in incompatible)
+            raise ValueError(
+                "The isolate mode cannot be combined with the following SPAdes "
+                f"option(s): {formatted}."
+            )
+
+    excluded = {"ctx", "reads", "isolate", "num_partitions"}
+    if isolate:
+        excluded.update(ISOLATE_INCOMPATIBLE_PARAMS)
+    else:
+        excluded.add("trusted_contigs")
+    kwargs = {key: value for key, value in params.items() if key not in excluded}
+
+    if isolate:
+        _assemble_spades = ctx.get_action("assembly", "_assemble_spades_isolate")
+    else:
+        _assemble_spades = ctx.get_action("assembly", "_assemble_spades")
 
     if coassemble:
         (contigs,) = _assemble_spades(reads, **kwargs)
@@ -238,7 +271,6 @@ def _assemble_spades(
     reads: Union[
         SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
     ],
-    isolate: bool = False,
     sc: bool = False,
     meta: bool = False,
     bio: bool = False,
@@ -271,6 +303,42 @@ def _assemble_spades(
     return assemble_spades_helper(
         reads=reads,
         meta=meta,
+        coassemble=coassemble,
+        uuid_type=uuid_type,
+        separator=separator,
+        common_args=common_args,
+    )
+
+
+def _assemble_spades_isolate(
+    reads: Union[
+        SingleLanePerSamplePairedEndFastqDirFmt, SingleLanePerSampleSingleEndFastqDirFmt
+    ],
+    trusted_contigs: DNAFASTAFormat = None,
+    disable_rr: bool = False,
+    threads: int = 1,
+    memory: int = 250,
+    k: List[int] = ["auto"],
+    cov_cutoff: Union[float, str] = "off",
+    phred_offset: str = "auto-detect",
+    debug: bool = False,
+    coassemble: bool = False,
+    uuid_type: str = "shortuuid",
+    separator: str = ":",
+) -> ContigSequencesDirFmt:
+    kwargs = {
+        key: value
+        for key, value in locals().items()
+        if key not in ["reads", "uuid_type", "coassemble", "separator"]
+    }
+    kwargs["isolate"] = True
+    common_args = _process_common_input_params(
+        processing_func=_process_spades_arg, params=kwargs
+    )
+
+    return assemble_spades_helper(
+        reads=reads,
+        meta=False,
         coassemble=coassemble,
         uuid_type=uuid_type,
         separator=separator,

@@ -141,17 +141,37 @@ P_spades_partition_coassemble, T_spades_partition_seqs = TypeMap(
     }
 )
 
+spades_isolate_params = {
+    key: value
+    for key, value in spades_params.items()
+    if key not in q2_assembly.spades.ISOLATE_INCOMPATIBLE_PARAMS
+}
+spades_isolate_param_descriptions = {
+    key: value
+    for key, value in spades_param_descriptions.items()
+    if key in spades_isolate_params or key == "coassemble"
+}
+
 plugin.pipelines.register_function(
     function=q2_assembly.spades.assemble_spades,
-    inputs={"reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality]},
+    inputs={
+        "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
+        "trusted_contigs": FeatureData[Sequence],
+    },
     parameters={
         **spades_params,
         "coassemble": P_spades_partition_coassemble,
+        "isolate": Bool,
         **partition_params,
     },
     outputs=[("contigs", T_spades_partition_seqs)],
     input_descriptions={
-        "reads": "The paired- or single-end sequences to be assembled."
+        "reads": "The paired- or single-end sequences to be assembled.",
+        "trusted_contigs": (
+            "Optional high-quality contigs from the same genome, used by SPAdes "
+            "for graph construction, gap closure, and repeat resolution. Only "
+            "accepted in isolate mode."
+        ),
     },
     parameter_descriptions={
         **spades_param_descriptions,
@@ -172,11 +192,41 @@ plugin.methods.register_function(
     input_descriptions={
         "reads": "The paired- or single-end sequences to be assembled."
     },
-    parameter_descriptions=spades_param_descriptions,
+    parameter_descriptions={
+        key: value
+        for key, value in spades_param_descriptions.items()
+        if key != "isolate"
+    },
     output_descriptions={"contigs": "The resulting assembled contigs."},
     name="Assemble a partition of reads using SPAdes.",
     description="This method supports parallel execution of assemble-spades by "
     "assembling one partition of paired- or single-end NGS reads.",
+    citations=[citations["Clark2021"]],
+)
+
+plugin.methods.register_function(
+    function=q2_assembly.spades._assemble_spades_isolate,
+    inputs={
+        "reads": SampleData[SequencesWithQuality | PairedEndSequencesWithQuality],
+        "trusted_contigs": FeatureData[Sequence],
+    },
+    parameters={
+        **spades_isolate_params,
+        "coassemble": P_spades_partition_coassemble,
+    },
+    outputs=[("contigs", T_spades_partition_seqs)],
+    input_descriptions={
+        "reads": "The paired- or single-end isolate sequences to be assembled.",
+        "trusted_contigs": (
+            "Optional high-quality contigs from the same genome, used by SPAdes "
+            "for graph construction, gap closure, and repeat resolution."
+        ),
+    },
+    parameter_descriptions=spades_isolate_param_descriptions,
+    output_descriptions={"contigs": "The resulting assembled isolate contigs."},
+    name="Assemble a partition of isolate reads using SPAdes.",
+    description="This method supports parallel execution of assemble-spades in "
+    "isolate mode by assembling one partition of NGS reads.",
     citations=[citations["Clark2021"]],
 )
 

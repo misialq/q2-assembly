@@ -14,6 +14,7 @@ from subprocess import CalledProcessError
 from unittest.mock import ANY, MagicMock, call, patch
 
 from parameterized import parameterized
+from q2_types.feature_data import DNAFASTAFormat
 from q2_types.per_sample_sequences import (
     ContigSequencesDirFmt,
     SingleLanePerSamplePairedEndFastqDirFmt,
@@ -24,8 +25,10 @@ from qiime2.plugin.testing import TestPluginBase
 
 from q2_assembly.spades.spades import (
     _assemble_spades,
+    _assemble_spades_isolate,
     _process_sample,
     _process_spades_arg,
+    assemble_spades,
     assemble_spades_helper,
 )
 
@@ -410,6 +413,50 @@ class TestSpades(TestPluginBase):
             common_args=exp_args,
         )
 
+    @patch("q2_assembly.spades.spades.assemble_spades_helper")
+    def test_assemble_spades_isolate_process_params(self, helper):
+        input_files = self.get_data_path("reads/single-end")
+        reads = SingleLanePerSampleSingleEndFastqDirFmt(input_files, mode="r")
+        trusted_contigs = DNAFASTAFormat(
+            self.get_data_path("sample_contigs.fa"), mode="r"
+        )
+
+        _assemble_spades_isolate(
+            reads=reads,
+            trusted_contigs=trusted_contigs,
+            threads=14,
+            k=[1, 2],
+        )
+
+        common_args = helper.call_args.kwargs["common_args"]
+        self.assertIn("--isolate", common_args)
+        trusted_index = common_args.index("--trusted-contigs")
+        self.assertEqual(common_args[trusted_index + 1], str(trusted_contigs))
+        self.assertNotIn("--meta", common_args)
+        self.assertNotIn("--careful", common_args)
+        self.assertNotIn("--only-assembler", common_args)
+
+    @parameterized.expand(
+        [
+            ("sc",),
+            ("meta",),
+            ("bio",),
+            ("corona",),
+            ("plasmid",),
+            ("metaviral",),
+            ("metaplasmid",),
+            ("only_assembler",),
+            ("careful",),
+        ]
+    )
+    def test_assemble_spades_rejects_incompatible_isolate_params(self, parameter):
+        with self.assertRaisesRegex(ValueError, parameter.replace("_", "-")):
+            assemble_spades(None, None, isolate=True, **{parameter: True})
+
+    def test_assemble_spades_rejects_trusted_contigs_without_isolate(self):
+        with self.assertRaisesRegex(ValueError, "trusted_contigs.*isolate=True"):
+            assemble_spades(None, None, trusted_contigs=object())
+
     def test_assemble_spades_parallel_paired(self):
         input_files = self.get_data_path("formatted-reads/paired-end")
         input_format = SingleLanePerSamplePairedEndFastqDirFmt(input_files, mode="r")
@@ -469,13 +516,20 @@ class TestSpades(TestPluginBase):
         samples = Artifact.import_data(
             "SampleData[PairedEndSequencesWithQuality]", input_format
         )
+        trusted_contigs = Artifact.import_data(
+            "FeatureData[Sequence]", self.get_data_path("sample_contigs.fa")
+        )
 
         with patch(
             "q2_assembly.spades.spades._process_sample",
             side_effect=self.mock_process_sample,
         ):
             with self.test_config:
-                (out,) = self.assemble_spades.parallel(samples, isolate=True)._result()
+                (out,) = self.assemble_spades.parallel(
+                    samples,
+                    trusted_contigs=trusted_contigs,
+                    isolate=True,
+                )._result()
 
         out.validate()
         self.assertEqual(str(out.type), "SampleData[Contigs]")
